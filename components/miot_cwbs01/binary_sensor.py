@@ -54,7 +54,7 @@ CONF_ERROR = "error"
 
 OPTIONS_MODE = [
     # starting from 0
-    "None",
+    "Off",
     "Keep - Freshing",
     "Anion",
     "Deodorization",
