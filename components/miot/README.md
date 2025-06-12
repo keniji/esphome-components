@@ -13,7 +13,7 @@ external_components:
   - source: github://dentra/esphome-components
 
 miot:
-  # Map (Optional), bindkey automaticaly will be requested for any miot component. Requires internet connection when compiling.
+  # Map (Optional), bindkey automatically will be requested for any miot component. Requires internet connection when compiling.
   xiaomi_account:
     # String (Required), Xiaomi Cloud account username
     username: !secret xiaomi_username
@@ -26,9 +26,9 @@ miot:
 
   on_miot_advertise:
     # String (Required), device MAC-address
-    mac_address: "device-mac-address"
+    mac_address: !secret device_mac_address
     # String, (Optional), device bind key
-    bindkey: "device-bind-key"
+    bindkey: !secret device_bind_key
     # enable debug BLE messages, DO NOT USE IN PRODUCTION
     debug: true
     then:
@@ -44,9 +44,9 @@ external_components:
 miot:
   on_miot_advertise:
     # String (Required), device MAC-address.
-    mac_address: "device-mac-address"
+    mac_address: !secret device_mac_address
     # String, (Optional), device bind key
-    bindkey: "device-bind-key"
+    bindkey: !secret device_bind_key
     # enable debug BLE messages, DO NOT USE IN PRODUCTION
     debug: true
     then:
@@ -54,9 +54,8 @@ miot:
         ESP_LOGW("miot_event", "miid: 0x%04x, data: %s", x.id, format_hex_pretty(x.data.data(), x.data.size()).c_str());
 ```
 
-> Also you colud use [MIOT Explorer](../miot_explorer/) to grab sensors information.
-
+> Also you could use [MIOT Explorer](../miot_explorer/) to grab sensors information.
 
 ## Adding new device to component
 
-Configure [miot](../miot/) compoent and send me evets from your toothbrush.
+Configure [miot](../miot/) component and send me events from your toothbrush.

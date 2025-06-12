@@ -44,6 +44,8 @@ class MQTTClientComponentAccessor : public mqtt::MQTTClientComponent {
     this->set_log_message_template(this->mk_topic_(topic, this->log_message_));
   }
 
+  const std::string log_message_topic_full() const { return this->log_message_.topic; };
+
   const std::string last_will_topic() const { return this->unprefix_(this->last_will_.topic); }
   void last_will_topic(const std::string &topic) { this->set_last_will(this->mk_topic_(topic, this->last_will_)); }
 
@@ -56,6 +58,8 @@ class MQTTClientComponentAccessor : public mqtt::MQTTClientComponent {
   void shutdown_message_topic(const std::string &topic) {
     this->set_shutdown_message(this->mk_topic_(topic, this->shutdown_message_));
   }
+
+  const std::string &get_broker_address() const { return this->credentials_.address; }
 
  protected:
   inline static bool trim_pred_(const char c) { return std::isspace(c) || c == '/'; }
@@ -83,8 +87,11 @@ class MQTTClientComponentAccessor : public mqtt::MQTTClientComponent {
       if (s.front() == '/') {
         dtu::str_ltrim_ref(s, trim_pred_);
       } else {
-        s.insert(s.cbegin(), '/');
-        s.insert(0, this->get_topic_prefix());
+        const auto topic_prefix = this->get_topic_prefix();
+        if (topic_prefix.back() != '/') {
+          s.insert(s.cbegin(), '/');
+        }
+        s.insert(0, topic_prefix);
       }
     }
 
