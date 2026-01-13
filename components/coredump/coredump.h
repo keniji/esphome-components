@@ -16,7 +16,7 @@ class Coredump : public Component, public AsyncWebHandler {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::WIFI - 1.0f; }
 
-  bool canHandle(AsyncWebServerRequest *request) override;
+  bool canHandle(AsyncWebServerRequest *request) const override;
   void handleRequest(AsyncWebServerRequest *request) override;
 
  protected:
@@ -32,6 +32,11 @@ class Coredump : public Component, public AsyncWebHandler {
   void erase_(AsyncWebServerRequest *request);
   void crash_(AsyncWebServerRequest *request);
   void download_(AsyncWebServerRequest *request);
+
+  void write_html_begin(AsyncWebServerRequest *request, const char *redirect_url = nullptr);
+
+ private:
+  bool partition_err = {false};
 };
 
 }  // namespace coredump

@@ -17,7 +17,7 @@ void EnergyTariffs::dump_config() {
   for (auto t : this->tariffs_) {
     t->dump_config();
   }
-  LOG_NUMBER("", "Time offset", this->time_offset_)
+  LOG_NUMBER("", "Time offset", this->time_offset_);
 }
 
 void EnergyTariffs::setup() {

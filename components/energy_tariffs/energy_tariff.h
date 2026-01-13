@@ -42,6 +42,7 @@ class EnergyTariff : public Sensor,
   }
 
   void set_service(const std::string &service) { this->service_ = service; }
+  void set_initial_value(float initial_value) { this->initial_value_ = initial_value; }
 
   bool is_default() const { return this->time_.empty(); }
 
@@ -62,6 +63,7 @@ class EnergyTariff : public Sensor,
   ESPPreferenceObject rtc_;
   std::vector<time_range_t> time_;
   std::string service_;
+  float initial_value_{0.0f};
 
   // Return true if time in the range [min, max]
   static bool time_in_range_(uint16_t min, uint16_t max, const ESPTime &time) {

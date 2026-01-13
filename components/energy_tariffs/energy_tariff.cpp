@@ -15,7 +15,7 @@ void EnergyTariff::dump_config() {
   for (auto const &t : this->time_) {
     ESP_LOGCONFIG(TAG, "    Time: %02d:%02d-%02d:%02d", t.min / 60, t.min % 60, t.max / 60, t.max % 60);
   }
-  ESP_LOGCONFIG(TAG, "    State: %.2f", this->state);
+  ESP_LOGCONFIG(TAG, "    State: %.2f", this->get_state());
 }
 
 void EnergyTariff::setup() {
@@ -25,7 +25,7 @@ void EnergyTariff::setup() {
   if (this->rtc_.load(&loaded)) {
     this->publish_state_and_save(loaded);
   } else {
-    this->publish_state_and_save(0.0f);
+    this->publish_state_and_save(this->initial_value_);
   }
 
 #ifdef USE_API

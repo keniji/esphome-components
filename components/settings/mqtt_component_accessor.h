@@ -1,7 +1,9 @@
 #pragma once
 
-#include "esphome/core/defines.h"
 #ifdef USE_MQTT
+
+#include "esphome/core/defines.h"
+#include "esphome/core/version.h"
 
 #include "esphome/core/application.h"
 #include "esphome/components/mqtt/mqtt_client.h"
@@ -36,7 +38,11 @@ class MQTTClientComponentAccessor : public mqtt::MQTTClientComponent {
         s.append(suffix);
       }
     }
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2025, 2, 0)
     this->set_topic_prefix(s);
+#else
+    this->set_topic_prefix(s, "");
+#endif
   }
 
   const std::string log_message_topic() const { return this->unprefix_(this->log_message_.topic); }

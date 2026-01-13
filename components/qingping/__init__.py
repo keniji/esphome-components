@@ -18,7 +18,7 @@ from esphome.const import (
     CONF_PRESSURE,
     CONF_TEMPERATURE,
 )
-from esphome.core import MACAddress
+from esphome.core import CORE, MACAddress
 
 from .. import cgp  # pylint: disable=relative-beyond-top-level
 
@@ -47,6 +47,10 @@ CONF_DOOR = "door"
 CONF_DOOR_LEFT_OPEN = "door_left_open"
 CONF_PM10 = "pm10"
 CONF_PM25 = "pm25"
+
+KEY_PLATFORM_SENSOR = "sensor"
+KEY_PLATFORM_BINARY_SENSOR = "binary_sensor"
+
 
 string_or_none = cv.Any(cv.boolean_false, cv.none, cv.string)
 
@@ -79,7 +83,7 @@ def _check_hub():
         # allow any mac with verbose mode
         if config.get(CONF_VERBOSE, False):
             return config
-        raise cv.Invalid(f"{CONF_MAC_ADDRESS} is requred")
+        raise cv.Invalid(f"{CONF_MAC_ADDRESS} is required")
 
     return validator
 
@@ -95,7 +99,7 @@ def _check_final():
             if mac in macs:
                 raise cv.Invalid(f"Duplicate MAC-address: {mac}")
             macs.append(mac)
-        # check for only one explorer wuthout mac-address
+        # check for only one explorer without mac-address
         any_explorer_count = 0
         for conf in config:
             if CONF_EXPLORER not in conf and not conf.get(CONF_VERBOSE, False):
@@ -130,27 +134,27 @@ CONFIG_SCHEMA = cv.All(
 )
 
 
-async def _setup_explorer_name(config: dict, key: str, var: cg.MockObj):
-    if value := config.get(key, None):
-        cg.add(getattr(var, f"set_name_{key}")(value))
-
-
-async def _setup_explorer(config, parent):
+async def _setup_explorer(config: dict, parent):
     var = cg.new_Pvariable(config[CONF_ID], parent)
     await cg.register_component(var, config)
 
-    await _setup_explorer_name(config, CONF_TEMPERATURE, var)
-    await _setup_explorer_name(config, CONF_HUMIDITY, var)
-    await _setup_explorer_name(config, CONF_BATTERY_LEVEL, var)
-    await _setup_explorer_name(config, CONF_DOOR, var)
-    await _setup_explorer_name(config, CONF_DOOR_LEFT_OPEN, var)
-    await _setup_explorer_name(config, CONF_PRESSURE, var)
-    await _setup_explorer_name(config, CONF_MOTION, var)
-    await _setup_explorer_name(config, CONF_ILLUMINANCE, var)
-    await _setup_explorer_name(config, CONF_LIGHT, var)
-    await _setup_explorer_name(config, CONF_PM10, var)
-    await _setup_explorer_name(config, CONF_PM25, var)
-    await _setup_explorer_name(config, CONF_CO2, var)
+    for key, pla in [
+        (CONF_TEMPERATURE, KEY_PLATFORM_SENSOR),
+        (CONF_HUMIDITY, KEY_PLATFORM_SENSOR),
+        (CONF_BATTERY_LEVEL, KEY_PLATFORM_BINARY_SENSOR),
+        (CONF_DOOR, KEY_PLATFORM_BINARY_SENSOR),
+        (CONF_DOOR_LEFT_OPEN, KEY_PLATFORM_BINARY_SENSOR),
+        (CONF_PRESSURE, KEY_PLATFORM_SENSOR),
+        (CONF_MOTION, KEY_PLATFORM_BINARY_SENSOR),
+        (CONF_ILLUMINANCE, KEY_PLATFORM_SENSOR),
+        (CONF_LIGHT, KEY_PLATFORM_BINARY_SENSOR),
+        (CONF_PM10, KEY_PLATFORM_SENSOR),
+        (CONF_PM25, KEY_PLATFORM_SENSOR),
+        (CONF_CO2, KEY_PLATFORM_SENSOR),
+    ]:
+        if value := config.get(key, None):
+            cg.add(getattr(var, f"set_name_{key}")(value))
+            CORE.register_platform_component(pla, None)
 
     cg.add_define("USE_QINGPING_EXPLORER")
 
@@ -180,9 +184,6 @@ async def to_code(config):
     macs = [conf[CONF_MAC_ADDRESS] for conf in config if CONF_MAC_ADDRESS in conf]
     for conf in config:
         await _setup_hub(conf, macs)
-
-    cg.add_build_flag("-std=gnu++17")
-    cg.add_platformio_option("build_unflags", ["-std=gnu++11"])
 
 
 def new_pc(pc_cfg: dict[str, str | dict[str, Any]]):
