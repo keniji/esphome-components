@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
+#include "esphome/core/version.h"
 #ifdef USE_VPORT_UART
 
 #include "esphome/core/component.h"
@@ -31,10 +32,17 @@ class VPortUARTComponentImpl : public VPortIO<io_t, frame_spec_t>, public compon
     }
   }
 
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
   void call_loop() override {
     component_t::call_loop();
     this->io_->poll();
   }
+#else
+  void loop() override {
+    component_t::loop();
+    this->io_->poll();
+  }
+#endif
 
   // required by VPortQComponent
   using io_type = io_t;

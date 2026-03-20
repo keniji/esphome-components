@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "esphome/core/defines.h"
+#include "esphome/core/version.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -83,12 +84,21 @@ template<class impl_t> class VPortQComponent : public impl_t {
     }
   }
 
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
   void call_loop() override {
     impl_t::call_loop();
     if (this->command_interval_ == 0) {
       this->q_process_();
     }
   }
+#else
+  void loop() override {
+    impl_t::loop();
+    if (this->command_interval_ == 0) {
+      this->q_process_();
+    }
+  }
+#endif
 
  protected:
   uint32_t command_interval_{};
