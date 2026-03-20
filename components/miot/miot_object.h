@@ -106,7 +106,13 @@ struct BLEObject {
   std::vector<uint8_t> data;
 
   // get 8 bit value as boolean.
-  optional<bool> get_bool() const { return get_uint8(); }
+  optional<bool> get_bool() const {
+    auto val = get_uint8();
+    if (val.has_value()) {
+      return optional<bool>{val.value() != 0};
+    }
+    return {};
+  }
 
   // get 8 bit unsigned value.
   optional<uint8_t> get_uint8() const {
