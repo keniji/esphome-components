@@ -1,3 +1,5 @@
+import logging
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.final_validate as fv
@@ -62,8 +64,13 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
-    var = await cg.get_variable(_get_ota_component(CORE.config))
+    if cv.Version.parse(ESPHOME_VERSION) < cv.Version.parse("2026.3.0"):
+        var = await cg.get_variable(_get_ota_component(CORE.config))
 
-    enabled = await switch.new_switch(config[CONF_ENABLED])
+        enabled = await switch.new_switch(config[CONF_ENABLED])
 
-    cg.add(var.set_enabled(enabled))
+        cg.add(var.set_enabled(enabled))
+    else:
+        logging.warning(
+            "Otax was unsupported since ESPHome 2026.3.0. Feel free to open issue if you need this feature"
+        )
