@@ -2,6 +2,8 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import cpp_generator as cpp
 from esphome.const import CONF_ID, CONF_INTERNAL, CONF_LAMBDA
+from esphome.core import CoroPriority, coroutine_with_priority
+from esphome.types import ConfigType
 
 CONF_NAMESPACE = "namespace"
 CONF_INCLUDE = "include"
@@ -24,7 +26,8 @@ DECLARATION_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.ensure_list(DECLARATION_SCHEMA)
 
 
-async def to_code(config):
+@coroutine_with_priority(CoroPriority.WORKAROUNDS)
+async def to_code(config: ConfigType):
     includes = set()
     # process includes first
     for conf in config:
