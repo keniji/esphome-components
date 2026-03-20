@@ -15,6 +15,7 @@ from esphome.const import (
     STATE_CLASS_TOTAL_INCREASING,
     UNIT_KILOWATT_HOURS,
 )
+from esphome.const import __version__ as ESPHOME_VERSION
 from esphome.core import TimePeriod
 
 CODEOWNERS = ["@dentra"]
@@ -226,6 +227,19 @@ async def to_code(config):
     for conf in config.get(CONF_ON_BEFORE_TARIFF, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
+
+
+if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2026.3.0"):
+    import esphome.final_validate as fv
+    from esphome.components import api
+
+    def _final_validate(config):
+        full_config = fv.full_config.get()
+        if api_conf := full_config.get(api.DOMAIN):
+            api_conf[api.CONF_CUSTOM_SERVICES] = True
+        return config
+
+    FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 # @automation.register_action('tariff.set', TariffSetAction,
