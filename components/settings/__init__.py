@@ -12,6 +12,10 @@ from esphome.const import (
     CONF_USERNAME,
     PLATFORM_ESP32,
 )
+from esphome.const import (
+    __version__ as ESPHOME_VERSION,
+)
+from esphome.cpp_generator import RawStatement
 
 from . import const, cpp, presets, var
 
@@ -243,7 +247,7 @@ def _add_resource(filename: str, resurce_name: str = ""):
 
 
 # Run with low priority so that all initilization be doing first
-@core.coroutine_with_priority(-1000.0)
+@core.coroutine_with_priority(core.CoroPriority.FINAL)
 async def to_code(config):
     vars = config[CONF_VARIABLES].copy()
     presets.presets_init(config.get(CONF_PRESETS), vars)
@@ -270,3 +274,11 @@ async def to_code(config):
         cg.add(settings.set_base_url(config[CONF_BASE_URL]))
 
     await _web_menu_add_item(config, settings, "Settings")
+
+    if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2026.3.0"):
+        # extends esphome_app_name_buf to 100 chars
+        for st in core.CORE.global_statements:
+            if not isinstance(st, RawStatement):
+                continue
+            if st.text.startswith("static char esphome_app_name_buf[]"):
+                st.text = st.text.replace("[]", "[100]")

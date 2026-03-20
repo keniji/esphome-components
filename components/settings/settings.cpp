@@ -58,23 +58,33 @@ bool Settings::canHandle(AsyncWebServerRequest *request)
   // arduino returns String but not std::string
   return request->url().startsWith(this->base_url_.c_str());
 #else
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
   return str_startswith(request->url(), this->base_url_);
+#else
+  char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+  return strncmp(request->url_to(url_buf).c_str(), this->base_url_.c_str(), this->base_url_.size()) == 0;
+#endif
 #endif
 }
 
 void Settings::handleRequest(AsyncWebServerRequest *request) {  // NOLINT(readability-non-const-parameter)
-  SETTINGS_TRACE(TAG, "Handle request method %u, url: %s", request->method(), request->url().c_str());
-#ifdef USE_WEBSERVER_AUTH
-  if (!request->authenticate(this->username_, this->password_)) {
-    return request->requestAuthentication();
-  }
-#endif
-
 #ifdef USE_ARDUINO
   // arduino returns String but not std::string
   const std::string url = request->url().c_str();
 #else
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
   const std::string url = request->url();
+#else
+  char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+  const StringRef url = request->url_to(url_buf);
+#endif
+#endif
+
+  SETTINGS_TRACE(TAG, "Handle request method %u, url: %s", request->method(), url.c_str());
+#ifdef USE_WEBSERVER_AUTH
+  if (!request->authenticate(this->username_, this->password_)) {
+    return request->requestAuthentication();
+  }
 #endif
 
   if (request->method() == HTTP_POST) {

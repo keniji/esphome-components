@@ -23,7 +23,7 @@ std::string json_escape(const std::string &str);
 std::string hex_sanitize(const std::string &str);
 
 /// Helper to parse mac address from string.
-bool parse_mac(const std::string& mac, uint64_t *result);
+bool parse_mac(const std::string &mac, uint64_t *result);
 /// Helper to convert mac address to string
 std::string mac_to_string(uint64_t mac);
 /// Helper to convert mac address to json string.

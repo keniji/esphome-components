@@ -4,6 +4,7 @@ from typing import Any
 import esphome.codegen as cg
 import esphome.config_validation as cv
 import esphome.cpp_generator as cppg
+from esphome.components import api, esp32, mqtt, uart, web_server, wifi
 from esphome.const import (
     CONF_AREA,
     CONF_COMMENT,
@@ -20,8 +21,6 @@ from esphome.const import (
 )
 from esphome.core import CORE
 from esphome.core.config import CONF_NAME_ADD_MAC_SUFFIX
-
-from esphome.components import api, esp32, mqtt, uart, web_server, wifi
 
 from .. import cgp
 from . import const, cpp, var
@@ -80,7 +79,7 @@ _PRESET_DEFAULTS = {
     },
     PRESET_API: {
         const.CONF_VAR_PRESET: PRESET_API,
-        const.CONF_VAR_SECTION: "API",
+        const.CONF_VAR_SECTION: "Home Assistant API",
         const.CONF_VAR_COMP: COMP_API,
         const.CONF_VAR_IFDEF: USE_API,
     },
@@ -196,7 +195,7 @@ _PRESETS = OrderedDict(
             {
                 "api_reboot_timeout": {
                     const.CONF_VAR_TYPE: var.VT_TIMEOUT,
-                    const.CONF_VAR_HELP: "The amount of time in seconds to wait before rebooting when no API connection exists",
+                    const.CONF_VAR_HELP: "The amount of time in seconds to wait before rebooting when no API connection exists. Can be disabled by setting this to 0",
                     const.CONF_VAR_GETTER: lambda c, _: c[api.CONF_REBOOT_TIMEOUT],
                     const.CONF_VAR_SETTER: lambda _, o: o.set_reboot_timeout,
                 },
@@ -207,9 +206,9 @@ _PRESETS = OrderedDict(
                 KEY_MQTT_HOST: {
                     const.CONF_VAR_TYPE: var.VT_STR,
                     const.CONF_VAR_MIN: 1,
-                    const.CONF_VAR_HELP: "The host of your MQTT broker",
+                    const.CONF_VAR_HELP: "The host of your MQTT broker. Set to 0.0.0.0 to disable connection to broker",
                     const.CONF_VAR_GETTER: lambda c, _: c[mqtt.CONF_BROKER],
-                    const.CONF_VAR_SETTER: lambda c, o: _mqtt_set_broker_address(c, o),
+                    const.CONF_VAR_SETTER: lambda c, o: _mqtt_set_broker_host(c, o),
                 },
                 "mqtt_port": {
                     const.CONF_VAR_TYPE: var.VT_UINT16,
@@ -324,20 +323,24 @@ _PRESETS = OrderedDict(
                     const.CONF_VAR_GETTER: lambda c, _: c[web_server.CONF_LOG],
                     const.CONF_VAR_SETTER: lambda _, o: o.set_expose_log,
                 },
-                "web_server_ota": {
-                    const.CONF_VAR_IFDEF: [USE_WEB_SERVER, USE_ARDUINO],
-                    const.CONF_VAR_TYPE: var.VT_BOOL,
-                    const.CONF_VAR_NAME: "OTA",
-                    const.CONF_VAR_HELP: "Turn on or off the OTA feature inside web server. Strongly not suggested without enabled authentication settings",
-                    const.CONF_VAR_GETTER: lambda c, _: c.get(
-                        web_server.CONF_OTA, False
-                    ),
-                    const.CONF_VAR_SETTER: lambda _, o: o.set_allow_ota,
-                },
+                # "web_server_ota": {
+                #     const.CONF_VAR_IFDEF: [USE_WEB_SERVER, USE_ARDUINO],
+                #     const.CONF_VAR_TYPE: var.VT_BOOL,
+                #     const.CONF_VAR_NAME: "OTA",
+                #     const.CONF_VAR_HELP: "Turn on or off the OTA feature inside web server. Strongly not suggested without enabled authentication settings",
+                #     const.CONF_VAR_GETTER: lambda c, _: c.get(
+                #         web_server.CONF_OTA, False
+                #     ),
+                #     const.CONF_VAR_SETTER: lambda _, o: o.set_allow_ota,
+                # },
             }
         ),
     }
 )
+
+if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2026.3.0"):
+    del _PRESETS[PRESET_NODE][KEY_NODE_NAME_ADD_MAC_SUFFIX]
+
 
 PRESETS = list(_PRESETS.keys())
 
@@ -359,25 +362,10 @@ def _node_setter(config, App: cg.MockObj):
     ss = []
 
     node_name = _add_load_nvs_str_var(nvs, KEY_NODE_NAME, ss)
-    node_name_add_mac_suffix = _add_load_nvs_var(
-        nvs, KEY_NODE_NAME_ADD_MAC_SUFFIX, cg.bool_, ss
-    )
-
-    pre_setup_params = [
-        cgp.ConditionalExperession(
-            node_name.has_value(),
-            node_name.value(),
-            config[CONF_NAME],
-        ),
-        config[CONF_FRIENDLY_NAME],
-        config.get(CONF_COMMENT, ""),
-        cg.RawExpression('__DATE__ ", " __TIME__'),
-        cgp.ConditionalExperession(
-            node_name_add_mac_suffix.has_value(),
-            node_name_add_mac_suffix.value(),
-            config[CONF_NAME_ADD_MAC_SUFFIX],
-        ),
-    ]
+    if cv.Version.parse(ESPHOME_VERSION) < cv.Version.parse("2026.3.0"):
+        node_name_add_mac_suffix = _add_load_nvs_var(
+            nvs, KEY_NODE_NAME_ADD_MAC_SUFFIX, cg.bool_, ss
+        )
 
     # 2025.6.x
     # void pre_setup(const std::string &name, const std::string &friendly_name, const char *area, const char *comment, const char *compilation_time, bool name_add_mac_suffix)
@@ -385,34 +373,78 @@ def _node_setter(config, App: cg.MockObj):
     # void pre_setup(const std::string &name, const std::string &friendly_name, const char *comment, const char *compilation_time, bool name_add_mac_suffix)
     # 2026.1.x
     # void pre_setup(const std::string &name, const std::string &friendly_name, bool name_add_mac_suffix)
+    # 2026.3.x
+    # void pre_setup(const char *name, size_t name_len, const char *friendly_name, size_t friendly_name_len)
+    # name_add_mac_suffix based on ESPHOME_NAME_ADD_MAC_SUFFIX
 
-    if cv.Version.parse(ESPHOME_VERSION) < cv.Version.parse("2025.7.0"):
-        pre_setup_params.insert(2, config.get(CONF_AREA, ""))
-
-    if cv.Version.parse(ESPHOME_VERSION) > cv.Version.parse("2025.12.99"):
-        pre_setup_params.pop(2)
-        pre_setup_params.pop(2)
-
-    ss.append(
-        cgp.IfStatement(
-            f"{node_name.has_value()} || {node_name_add_mac_suffix.has_value()}",
-            [
-                cgp.IfStatement(
-                    node_name.has_value(),
+    if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2026.3.0"):
+        ss.append(
+            cgp.IfStatement(
+                f"{node_name.has_value()}",
+                [
                     cpp.log_expression(KEY_NODE_NAME, var.VT_STR, node_name.value()),
-                ),
-                cgp.IfStatement(
-                    node_name_add_mac_suffix.has_value(),
-                    cpp.log_expression(
-                        KEY_NODE_NAME_ADD_MAC_SUFFIX,
-                        var.VT_BOOL,
-                        node_name_add_mac_suffix.value(),
+                    cg.RawExpression(
+                        f"const size_t node_name_size = {node_name.value().size()}"
                     ),
-                ),
-                App.pre_setup(*pre_setup_params),
-            ],
+                    cg.RawExpression(
+                        f"memcpy(esphome_app_name_buf, {node_name.value().c_str()}, node_name_size)"
+                    ),
+                    cg.RawExpression("esphome_app_name_buf[node_name_size + 1] = 0"),
+                    App.pre_setup(
+                        cg.RawExpression("esphome_app_name_buf"),
+                        cg.RawExpression("node_name_size"),
+                        cg.RawExpression("\n  esphome_app_friendly_name_buf"),
+                        cg.RawExpression("sizeof(esphome_app_friendly_name_buf)"),
+                    ),
+                ],
+            )
         )
-    )
+    else:
+        pre_setup_params = [
+            cgp.ConditionalExperession(
+                node_name.has_value(),
+                node_name.value(),
+                config[CONF_NAME],
+            ),
+            config[CONF_FRIENDLY_NAME],
+            config.get(CONF_COMMENT, ""),
+            cg.RawExpression('__DATE__ ", " __TIME__'),
+            cgp.ConditionalExperession(
+                node_name_add_mac_suffix.has_value(),
+                node_name_add_mac_suffix.value(),
+                config[CONF_NAME_ADD_MAC_SUFFIX],
+            ),
+        ]
+
+        if cv.Version.parse(ESPHOME_VERSION) < cv.Version.parse("2025.7.0"):
+            pre_setup_params.insert(2, config.get(CONF_AREA, ""))
+
+        if cv.Version.parse(ESPHOME_VERSION) > cv.Version.parse("2025.12.99"):
+            pre_setup_params.pop(2)
+            pre_setup_params.pop(2)
+
+        ss.append(
+            cgp.IfStatement(
+                f"{node_name.has_value()} || {node_name_add_mac_suffix.has_value()}",
+                [
+                    cgp.IfStatement(
+                        node_name.has_value(),
+                        cpp.log_expression(
+                            KEY_NODE_NAME, var.VT_STR, node_name.value()
+                        ),
+                    ),
+                    cgp.IfStatement(
+                        node_name_add_mac_suffix.has_value(),
+                        cpp.log_expression(
+                            KEY_NODE_NAME_ADD_MAC_SUFFIX,
+                            var.VT_BOOL,
+                            node_name_add_mac_suffix.value(),
+                        ),
+                    ),
+                    App.pre_setup(*pre_setup_params),
+                ],
+            )
+        )
 
     return cgp.StatementList(ss)
 
@@ -474,7 +506,7 @@ def _mqtt_access(mqtt_comp: cg.MockObj):
     return cg.MockObj("settings::mqtt_access", "->")(mqtt_comp)
 
 
-def _mqtt_set_broker_address(config, mqtt_comp: cg.MockObj):
+def _mqtt_set_broker_host(config, mqtt_comp: cg.MockObj):
     # return mqtt_comp.set_broker_address
     nvs = cg.MockObj("nvs")
 
@@ -531,9 +563,9 @@ def presets_init(cpresets: list[str], vars: dict[str, dict[str, Any]]):
             val.update(vars.get(key, {}))
             vars[key] = val
     elif vars:
-        raise cv.Invalid(
-            f"variables is not supported for esphome {ESPHOME_VERSION} yet"
-        )
+        for key, val in _get_presets(cpresets).items():
+            val.update(vars.get(key, {}))
+            vars[key] = val
     else:
         for key, val in _get_presets(cpresets).items():
             # val.update(vars.get(key, {}))
