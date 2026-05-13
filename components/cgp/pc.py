@@ -136,12 +136,18 @@ class PC:
 
         component_source = self._get_component_source(config)
 
-        if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2025.9.0"):
-            from esphome.cpp_generator import LogStringLiteral
+        if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2026.4.0"):
+            from esphome.cpp_helpers import register_component_source
 
-            component_source = LogStringLiteral(component_source)
+            idx = register_component_source(component_source)
+            cg.add(var.set_component_source_(idx))
+        else:
+            if cv.Version.parse(ESPHOME_VERSION) >= cv.Version.parse("2025.9.0"):
+                from esphome.cpp_generator import LogStringLiteral
 
-        cg.add(var.set_component_source(component_source))
+                component_source = LogStringLiteral(component_source)
+
+            cg.add(var.set_component_source(component_source))
         return var
 
     def _get_component_source(self, config: dict):
