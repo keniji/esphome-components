@@ -1,6 +1,11 @@
 #pragma once
 
+#include "esphome/core/version.h"
 #include "helpers.h"
+
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
+#include "esphome/core/string_ref.h"
+#endif
 
 namespace esphome {
 
@@ -35,6 +40,13 @@ template<class T> class JsonWriter {
     this->print_raw(key);
     this->print_raw("\":");
   }
+
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
+  // string val is not escaped, you must escape it first
+  void add_kv(const char *key, const StringRef &val, bool add_comma = true) const {
+    this->add_kv(key, val.c_str(), add_comma);
+  }
+#endif
 
   // string val is not escaped, you must escape it first
   void add_kv(const char *key, const char *val, bool add_comma = true) const {

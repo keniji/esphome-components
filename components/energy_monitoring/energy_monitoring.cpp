@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/version.h"
 #include "energy_monitoring.h"
 
 #ifndef isnan
@@ -62,7 +63,11 @@ void EnergyMonitoring::setup() {
   }
 
   if (this->power_factor_) {
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
     auto power_factor_unit = this->power_factor_->get_unit_of_measurement();
+#else
+    auto power_factor_unit = this->power_factor_->get_unit_of_measurement_ref();
+#endif
     if (!power_factor_unit.empty() && power_factor_unit[0] == '%') {
       this->power_factor_->set_accuracy_decimals(0);
     }
@@ -122,7 +127,11 @@ void EnergyMonitoring::process_power_(float power, float apparent, float current
 
   if (this->power_factor_) {
     auto factor = this->calc_power_factor_(power, apparent);
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 3, 0)
     auto power_factor_unit = this->power_factor_->get_unit_of_measurement();
+#else
+    auto power_factor_unit = this->power_factor_->get_unit_of_measurement_ref();
+#endif
     if (!power_factor_unit.empty() && power_factor_unit[0] == '%') {
       factor *= 100;
     }

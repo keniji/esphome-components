@@ -18,9 +18,16 @@ static const char *const TAG = "vport_ble";
 
 void VPortBLENode::dump_settings(const char *tag) const {
   ESP_LOGCONFIG(tag, "  MAC Address: %s", ble_client_address_str(this->parent_));
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 2, 0)
   ESP_LOGCONFIG(tag, "  BLE Service: %s", this->ble_service_.to_string().c_str());
   ESP_LOGCONFIG(tag, "  BLE Char TX: %s", this->ble_char_tx_.to_string().c_str());
   ESP_LOGCONFIG(tag, "  BLE Char RX: %s", this->ble_char_rx_.to_string().c_str());
+#else
+  char char_buf[esp32_ble::UUID_STR_LEN];
+  ESP_LOGCONFIG(tag, "  BLE Service: %s", this->ble_service_.to_str(char_buf));
+  ESP_LOGCONFIG(tag, "  BLE Char TX: %s", this->ble_char_tx_.to_str(char_buf));
+  ESP_LOGCONFIG(tag, "  BLE Char RX: %s", this->ble_char_rx_.to_str(char_buf));
+#endif
   ESP_LOGCONFIG(tag, "  BLE Sec Act: %u", this->ble_sec_act_);
 }
 

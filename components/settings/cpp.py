@@ -190,7 +190,11 @@ def log_var_expression(v: var.Var, x: cg.MockObj):
 
 
 def _wrap_setter(
-    v: var.Var, nvs: cg.MockObj, sav: cg.MockObj, obj: cg.MockObj, x: cg.MockObj
+    v: var.Var,
+    nvs: cg.MockObj,
+    sav: cg.MockObj,
+    obj: cg.MockObj,
+    x: cg.MockObj,
 ) -> cg.Statement:
     asgn = cgp.ConstAutoAssignmentExpression(sav, nvs.get.template(_type(v))(v.key))
     stmt = []

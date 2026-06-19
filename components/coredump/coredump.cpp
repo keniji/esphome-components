@@ -124,7 +124,13 @@ void Coredump::write_html_begin(AsyncWebServerRequest *request, const char *redi
   html_begin += "" ESPHOME_PROJECT_NAME ": " ESPHOME_PROJECT_VERSION ", ";
 #endif
   html_begin += "ESPHome: " ESPHOME_VERSION ", ";
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 4)
   html_begin += App.get_compilation_time();
+#else
+  char build_time_str[Application::BUILD_TIME_STR_SIZE];
+  App.get_build_time_string(build_time_str);
+  html_begin += build_time_str;
+#endif
   html_begin += "</p>";
 
   if (this->partition_err) {
@@ -234,7 +240,17 @@ void Coredump::download_(AsyncWebServerRequest *request) {
 #ifdef ESPHOME_PROJECT_NAME
   response->addHeader("Content-Disposition", "attachment;filename=coredump-" ESPHOME_PROJECT_VERSION ".elf");
 #else
-  auto content_disposition_value = "attachment;filename=\"coredump-" + App.get_compilation_time() + ".elf\"";
+
+  std::string content_disposition_value = "attachment;filename=\"coredump-";
+#if ESPHOME_VERSION_CODE < VERSION_CODE(2026, 1, 4)
+  content_disposition_value += App.get_compilation_time();
+#else
+  char build_time_str[Application::BUILD_TIME_STR_SIZE];
+  App.get_build_time_string(build_time_str);
+  content_disposition_value += build_time_str;
+#endif
+  content_disposition_value += ".elf\"";
+
   response->addHeader("Content-Disposition", content_disposition_value.c_str());
 #endif
 
